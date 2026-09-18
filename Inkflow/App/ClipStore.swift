@@ -8,12 +8,14 @@ final class ClipStore {
     var error: String?
     var isReady = false
     var toast: String?
+    var widgetIssue: String?
     let repository: VaultRepository
     private var toastTask: Task<Void, Never>?
     private var ownPasteboardChange: Int?
     private var lastObservedChange: Int?
     @ObservationIgnored lazy var cloud = CloudSyncController(store: self)
     static let groupID = "group.com.qdth.inkflow"
+    var isCloudEnabled: Bool { BuildFeatures.cloudSync && index.sync?.enabled == true }
 
     init(root: URL? = nil) {
         let defaultRoot = ProcessInfo.processInfo.arguments.contains("--demo")
@@ -31,7 +33,11 @@ final class ClipStore {
             isReady = true
             error = nil
             importInbox()
-        } catch { self.error = "资料库未能打开，原有数据已保留。\n\(error.localizedDescription)"; isReady = false }
+            refreshWidget()
+        } catch {
+            self.error = "资料库未能打开，原有数据已保留。\n\(error.localizedDescription)"; isReady = false
+            try? WidgetBridge.publish([], visible: false)
+        }
     }
 
     /// Commit metadata before updating the UI, so failed writes never look saved.
@@ -41,7 +47,7 @@ final class ClipStore {
         var next = index
         change(&next)
         next.trackChanges(from: index)
-        do { try repository.saveIndex(next); index = next; cloud.localDidChange(); return true }
+        do { try repository.saveIndex(next); index = next; refreshWidget(); cloud.localDidChange(); return true }
         catch { self.error = "保存失败，请重试。\n\(error.localizedDescription)"; return false }
     }
 
@@ -51,7 +57,7 @@ final class ClipStore {
         guard isReady else { return false }
         var next = index
         change(&next)
-        do { try repository.saveIndex(next); index = next; return true }
+        do { try repository.saveIndex(next); index = next; refreshWidget(); return true }
         catch { self.error = "保存失败，同步已暂停。\n\(error.localizedDescription)"; return false }
     }
 
@@ -113,7 +119,7 @@ final class ClipStore {
     }
 
     func importInbox() {
-        guard isReady, !ProcessInfo.processInfo.arguments.contains("--demo"), let group = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: Self.groupID) else { return }
+        guard BuildFeatures.shareExtension, isReady, !ProcessInfo.processInfo.arguments.contains("--demo"), let group = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: Self.groupID) else { return }
         let inbox = group.appendingPathComponent("Inbox", isDirectory: true)
         guard let urls = try? FileManager.default.contentsOfDirectory(at: inbox, includingPropertiesForKeys: nil) else { return }
         for url in urls where url.pathExtension == "txt" {
@@ -132,6 +138,13 @@ final class ClipStore {
             guard !Task.isCancelled else { return }
             toast = nil
         }
+    }
+
+    func refreshWidget() {
+        guard isReady else { return }
+        let visible = UserDefaults.standard.object(forKey: "widgetContentVisible") as? Bool ?? true
+        do { try WidgetBridge.publish(index.clips, visible: visible); widgetIssue = nil }
+        catch { widgetIssue = "小组件暂时无法更新，请检查 App 与小组件的 App Group 签名配置。手机内的记录不受影响。" }
     }
 
     func seedPreviewIfNeeded() {

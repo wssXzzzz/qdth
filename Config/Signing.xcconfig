@@ -1,0 +1,4 @@
+// Shared project configuration. Personal values belong in the ignored include.
+QDTH_FULL_DEVELOPMENT_TEAM =
+QDTH_LOCAL_DEVELOPMENT_TEAM =
+#include? "Signing.local.xcconfig"

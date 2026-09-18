@@ -13,6 +13,7 @@ struct SettingsView: View {
     @Environment(ClipStore.self) private var store
     @AppStorage("captureOnOpen") private var captureOnOpen = false
     @AppStorage("appearance") private var appearance = "system"
+    @AppStorage("widgetContentVisible") private var widgetContentVisible = true
     @State private var exporting = false
     @State private var importing = false
     @State private var backup = BackupDocument(data: Data())
@@ -31,8 +32,9 @@ struct SettingsView: View {
                     }.padding(.vertical, 10)
                 }
             }
-            Section {
-                Toggle("iCloud 同步", isOn: Binding(get: { store.index.sync?.enabled == true }, set: { enabled in
+            if BuildFeatures.cloudSync {
+              Section {
+                Toggle("iCloud 同步", isOn: Binding(get: { store.isCloudEnabled }, set: { enabled in
                     if enabled { confirmingCloud = true }
                     else { Task { await store.cloud.setEnabled(false) } }
                 }))
@@ -44,7 +46,7 @@ struct SettingsView: View {
                 if let issue = store.cloud.issue {
                     Text(issue).font(.caption).foregroundStyle(.orange).textSelection(.enabled)
                 }
-                if store.index.sync?.enabled == true {
+                if store.isCloudEnabled {
                     LabeledContent("待上传", value: "\(store.index.sync?.pendingCount ?? 0) 项")
                     if let date = store.index.sync?.lastSuccess {
                         LabeledContent("最近完成", value: date.formatted(date: .abbreviated, time: .shortened))
@@ -57,15 +59,35 @@ struct SettingsView: View {
                 }
             } header: { Text("iCloud") } footer: {
                 Text("默认关闭。开启后，文字、置顶、收藏和文本动作会上传到你自己的 iCloud 私有数据库，同一 Apple 账号的设备可以同步。删除也会同步；关闭不会删除已上传内容。外观和剪贴板读取设置不参与同步。")
+              }
+            } else {
+                Section {
+                    Label("内容只保存在这台设备", systemImage: "iphone.and.arrow.forward")
+                    Text("历史、置顶、收藏、文本处理和备份均可使用。此版本不连接 iCloud，也不包含系统分享收集扩展。")
+                        .font(.caption).foregroundStyle(Palette.muted)
+                } header: { Text("本地自用版") } footer: {
+                    Text("免费个人签名通常 7 天到期，届时用 Xcode 覆盖安装续签。请不要先卸载 App，并定期导出备份。")
+                }
             }
             Section {
                 Toggle("打开 App 时收集剪贴板", isOn: $captureOnOpen)
             } header: { Text("收集") } footer: {
                 Text("开启后，仅在全岛铁盒位于前台时读取新复制的文字，系统可能询问粘贴权限。关闭时，可点击首页粘贴按钮手动收集。iOS 不支持在后台记录每一次复制；首次安装也无法取回系统之前的剪贴板历史。")
             }
-            Section {
+            if BuildFeatures.shareExtension {
+              Section {
                 Label("选中文字 → 分享 → 全岛铁盒", systemImage: "square.and.arrow.up")
-            } header: { Text("从其他 App 收集") } footer: { Text("第一次使用时，可以在系统分享菜单的“更多”中添加全岛铁盒。分享的内容会在下次打开全岛铁盒时进入历史记录。") }
+              } header: { Text("从其他 App 收集") } footer: { Text("第一次使用时，可以在系统分享菜单的“更多”中添加全岛铁盒。分享的内容会在下次打开全岛铁盒时进入历史记录。") }
+            }
+            Section {
+                Toggle("在小组件显示置顶与收藏", isOn: $widgetContentVisible)
+                    .onChange(of: widgetContentVisible) { _, _ in store.refreshWidget() }
+                Text("长按 iPhone 主屏幕 → 编辑 → 添加小组件 → 搜索“全岛铁盒”，选择小、中或大尺寸。")
+                    .font(.caption).foregroundStyle(Palette.muted)
+                if let issue = store.widgetIssue { Text(issue).font(.caption).foregroundStyle(.orange) }
+            } header: { Text("主屏幕小组件") } footer: {
+                Text("只展示置顶或收藏的文字摘要，不展示普通历史。内容会出现在主屏幕；敏感文字请勿置顶或收藏，或关闭此开关。系统可能稍后刷新；关闭后请确认桌面内容已隐藏，必要时移除小组件。点击片段进入 App 后可复制；收集入口需在 App 内确认粘贴。")
+            }
             Section("外观") {
                 Picker("主题", selection: $appearance) {
                     Text("跟随系统").tag("system")
@@ -85,8 +107,8 @@ struct SettingsView: View {
             } header: { Text("数据") } footer: { Text("备份包含文字、置顶、收藏和自定义动作。可以保存到 iCloud Drive 或其他位置；导入时合并内容，不覆盖现有片段。备份是明文文件，请妥善保管。") }
             Section {
                 Label("无需额外注册账号", systemImage: "person.crop.circle.badge.checkmark")
-                Label("无广告、无统计；云同步由你开启", systemImage: "lock.shield")
-                LabeledContent("版本", value: "1.1.0")
+                Label(BuildFeatures.cloudSync ? "无广告、无统计；云同步由你开启" : "无广告、无统计、不上传文字", systemImage: "lock.shield")
+                LabeledContent("版本", value: appVersion + (BuildFeatures.cloudSync ? "" : " · 本地自用版"))
             } header: { Text("关于全岛铁盒") } footer: { Text("一个受 Taio 使用体验启发的独立应用。当前支持纯文本和链接收集。") }
         }.scrollContentBackground(.hidden).background(Palette.canvas).navigationTitle("设置").navigationBarTitleDisplayMode(.inline)
             .alert("开启 iCloud 同步？", isPresented: $confirmingCloud) {
@@ -121,6 +143,10 @@ struct SettingsView: View {
                     self.incoming = nil
                 }
             }
+    }
+
+    private var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
     }
 }
 

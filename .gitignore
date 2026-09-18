@@ -2,6 +2,8 @@
 build/
 build-catalyst/
 build-device/
+build-local/
+build-local-simulator/
 artifacts/
 DerivedData/
 *.xcuserstate
@@ -21,3 +23,4 @@ node_modules/
 *.log
 SyncAssets/
 index.json
+Config/Signing.local.xcconfig

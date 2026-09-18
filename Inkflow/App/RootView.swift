@@ -20,6 +20,8 @@ struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("captureOnOpen") private var captureOnOpen = false
     @State private var destination: Destination? = .library
+    @State private var widgetSheet: WidgetSheet?
+    @State private var navigationPaths: [Destination: [UUID]] = [:]
 
     var body: some View {
         Group {
@@ -30,9 +32,10 @@ struct RootView: View {
                     Text(store.error ?? "请重试，原有数据已保留。")
                 } actions: { Button("重新打开") { store.reload() }.buttonStyle(.borderedProminent) }
             } else if sizeClass == .compact {
-                TabView {
+                TabView(selection: $destination) {
                     ForEach(Destination.allCases) { item in
-                        NavigationStack { page(item) }
+                        NavigationStack(path: path(for: item)) { page(item) }
+                            .tag(Optional(item))
                             .tabItem { Label(item.rawValue, systemImage: item.symbol) }
                     }
                 }
@@ -51,11 +54,11 @@ struct RootView: View {
                         }.scrollContentBackground(.hidden).listStyle(.sidebar)
                         VStack(alignment: .leading, spacing: 8) {
                             Label("你的文字，只属于你", systemImage: "lock.shield")
-                            Text("\(store.index.clips.count) 段内容 · \(store.index.sync?.enabled == true ? "iCloud 已开启" : "本机保存")").font(.caption)
+                            Text("\(store.index.clips.count) 段内容 · \(store.isCloudEnabled ? "iCloud 已开启" : "本机保存")").font(.caption)
                         }.font(.footnote).foregroundStyle(Palette.muted).padding(24)
                     }.background(Palette.canvas).navigationSplitViewColumnWidth(min: 210, ideal: 240, max: 280)
                 } detail: {
-                    NavigationStack { page(destination ?? .library) }.id(destination)
+                    NavigationStack(path: path(for: destination ?? .library)) { page(destination ?? .library) }
                 }
             }
         }
@@ -73,6 +76,7 @@ struct RootView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 store.checkForegroundClipboard(enabled: captureOnOpen)
+                store.refreshWidget()
                 Task { await store.cloud.resume() }
             }
         }
@@ -80,6 +84,35 @@ struct RootView: View {
             if scenePhase == .active { store.checkForegroundClipboard(enabled: captureOnOpen) }
         }
         .onChange(of: captureOnOpen) { _, enabled in if enabled { store.checkForegroundClipboard(enabled: true) } }
+        .onOpenURL { url in
+            guard let route = WidgetRoute(url: url) else { return }
+            widgetSheet = nil
+            switch route {
+            case .library: navigationPaths[.library] = []; destination = .library
+            case .favorites: navigationPaths[.favorites] = []; destination = .favorites
+            case .capture: navigationPaths[.library] = []; destination = .library; widgetSheet = .capture
+            case .clip(let id): navigationPaths[.library] = []; destination = .library; widgetSheet = .clip(id)
+            }
+        }
+        .sheet(item: $widgetSheet) { sheet in
+            NavigationStack {
+                Group {
+                    switch sheet {
+                    case .capture: WidgetCaptureView()
+                    case .clip(let id): ClipDetailView(clipID: id)
+                    }
+                }.toolbar {
+                    ToolbarItem(placement: .topBarLeading) { Button("关闭") { widgetSheet = nil } }
+                }
+            }
+        }
+    }
+
+    // Keep the NavigationStack identity stable across deep links. Replacing it
+    // with .id(UUID()) during activation makes iOS 18 reuse a navigation item
+    // across two UINavigationBars and abort in layoutSubviews.
+    private func path(for item: Destination) -> Binding<[UUID]> {
+        Binding(get: { navigationPaths[item] ?? [] }, set: { navigationPaths[item] = $0 })
     }
 
     @ViewBuilder private func page(_ item: Destination) -> some View {
@@ -89,5 +122,31 @@ struct RootView: View {
         case .actions: WorkflowsView()
         case .settings: SettingsView()
         }
+    }
+}
+
+private enum WidgetSheet: Identifiable {
+    case capture, clip(UUID)
+    var id: String {
+        switch self { case .capture: "capture"; case .clip(let id): id.uuidString }
+    }
+}
+
+private struct WidgetCaptureView: View {
+    @Environment(ClipStore.self) private var store
+    @State private var captured = false
+    var body: some View {
+        VStack(spacing: 24) {
+            Image(systemName: captured ? "checkmark.circle" : "tray.and.arrow.down")
+                .font(.system(size: 50, weight: .light)).foregroundStyle(Palette.accent)
+            Text(captured ? "已留在铁盒里" : "收集此刻的剪贴板").font(.title2.bold())
+            Text(captured ? "回到历史记录，即可置顶、收藏或处理文字。" : "轻点下方粘贴按钮，保存你刚复制的文字。")
+                .foregroundStyle(Palette.muted).multilineTextAlignment(.center)
+            ClipboardPasteButton { strings in
+                captured = strings.reduce(false) { saved, text in store.capture(text) != nil || saved }
+            }.accessibilityLabel("粘贴并收集到历史记录")
+            Spacer()
+        }.padding(30).padding(.top, 45).frame(maxWidth: .infinity)
+            .background(Palette.canvas).navigationTitle("收集文字").navigationBarTitleDisplayMode(.inline)
     }
 }

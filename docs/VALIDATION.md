@@ -1,5 +1,13 @@
 # 验证记录
 
+## 1.2.3：长按预览圆角（2026-09-18）
+
+- 剪贴板卡片和文本动作卡片使用共用 `RoundedMenuCard`：背景、内描边、裁剪、交互区域与 `.contextMenuPreview` 使用同一个连续圆角形状；不再仅绘制圆角背景而保留矩形抬起预览。
+- 本地版真机签名构建、模拟器构建、完整版 iOS 无签名构建通过；完整版与本地版核心测试各 31 项通过，品牌图标一致性检查通过。
+- iPhone 13 Pro Max（iOS 18.7.8）覆盖更新至 1.2.3（build 6），启动成功、进程保持运行；未修改或清空用户资料库。
+- 用户在真机长按记录并收起菜单后确认“已经圆润了”。模拟器额外验证普通点按仍能进入片段详情；完整长按动画以此次真机反馈为验收依据。
+- 对应官方接口：[contextMenuPreview](https://developer.apple.com/documentation/swiftui/contentshapekinds/contextmenupreview)。
+
 ## 1.1：全岛铁盒与 iCloud（2026-09-17）
 
 本轮沿用下述 Xcode 26.1.1 / iOS 26.1 环境。

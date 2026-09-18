@@ -28,8 +28,9 @@ struct WorkflowsView: View {
                                 Text(workflow.steps.map { $0.kind.title }.joined(separator: " → "))
                                     .font(.caption).foregroundStyle(Palette.muted).lineLimit(2).frame(height: 35, alignment: .topLeading)
                                 Text("\(workflow.steps.count) 个步骤").font(.caption2.monospaced()).foregroundStyle(Palette.muted)
-                            }.frame(maxWidth: .infinity, alignment: .leading).padding(22).background(Palette.card, in: RoundedRectangle(cornerRadius: 22))
+                            }.frame(maxWidth: .infinity, alignment: .leading).padding(22)
                         }.buttonStyle(.plain)
+                            .roundedMenuCard(cornerRadius: 22)
                             .contextMenu {
                                 Button("编辑动作", systemImage: "pencil") { editing = workflow }
                                 Button("删除动作", systemImage: "trash", role: .destructive) { pendingDelete = workflow }

@@ -48,7 +48,7 @@ struct LibraryView: View {
                 }
                 HStack(spacing: 6) {
                     Image(systemName: "lock.shield").font(.caption)
-                    Text(store.index.sync?.enabled == true ? "本机保存 · 已开启 iCloud 同步" : "本机保存 · 随时取用").font(.caption)
+                    Text(store.isCloudEnabled ? "本机保存 · 已开启 iCloud 同步" : "本机保存 · 随时取用").font(.caption)
                 }.foregroundStyle(Palette.muted).frame(maxWidth: .infinity).padding(.vertical, 12)
             }.padding(sizeClass == .compact ? 20 : 36).frame(maxWidth: 1_120).frame(maxWidth: .infinity)
         }
@@ -160,7 +160,7 @@ struct ClipCard: View {
                     }
                     Text(clip.text).font(.system(size: 15)).foregroundStyle(Palette.ink).lineSpacing(7)
                         .lineLimit(5).frame(maxWidth: .infinity, minHeight: 106, alignment: .topLeading)
-                }.padding(20).contentShape(Rectangle())
+                }.padding(20).contentShape(.interaction, Rectangle())
             }.buttonStyle(.plain)
             HStack(spacing: 4) {
                 Text(clip.createdAt, format: .dateTime.month(.twoDigits).day(.twoDigits)).font(.system(size: 10, design: .monospaced))
@@ -174,8 +174,7 @@ struct ClipCard: View {
                     .accessibilityLabel("复制片段")
             }.font(.system(size: 14)).foregroundStyle(Palette.muted).padding(.horizontal, 16).padding(.bottom, 3)
                 .overlay(alignment: .top) { Rectangle().fill(Palette.line).frame(height: 1).padding(.horizontal, 20) }
-        }.background(Palette.card, in: RoundedRectangle(cornerRadius: 20))
-            .overlay(RoundedRectangle(cornerRadius: 20).stroke(clip.isPinned ? Palette.accent.opacity(0.25) : Palette.line, lineWidth: 1))
+        }.roundedMenuCard(cornerRadius: 20, border: clip.isPinned ? Palette.accent.opacity(0.25) : Palette.line)
             .contextMenu {
                 Button("复制", systemImage: "doc.on.doc") { store.copy(clip) }
                 Button(clip.isPinned ? "取消置顶" : "置顶", systemImage: "pin") { store.update(clip.id) { $0.isPinned.toggle() } }

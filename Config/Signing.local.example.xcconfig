@@ -1,0 +1,5 @@
+// Copy this file to Signing.local.xcconfig (ignored by Git).
+// Use the Team ID shown for your own account in Xcode.
+QDTH_LOCAL_DEVELOPMENT_TEAM = YOUR_PERSONAL_TEAM_ID
+// Only needed for the full CloudKit version with a paid membership.
+QDTH_FULL_DEVELOPMENT_TEAM = YOUR_PAID_TEAM_ID

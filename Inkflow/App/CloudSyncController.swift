@@ -1,3 +1,22 @@
+#if LOCAL_ONLY
+import Foundation
+import Observation
+
+/// Personal Team builds have no iCloud or push entitlements and never initialize
+/// CloudKit, including when loading a library with sync enabled in an older build.
+@MainActor @Observable
+final class CloudSyncController {
+    var status = "本地自用版 · 不连接 iCloud"
+    var issue: String?
+    var isBusy = false
+    init(store: ClipStore) { }
+    func setEnabled(_ value: Bool) async { }
+    func resume() async { }
+    func syncNow() async { }
+    func localDidChange() { }
+    func reuploadAfterZoneRemoval() async { }
+}
+#else
 import CloudKit
 import Foundation
 import Observation
@@ -432,3 +451,4 @@ private enum CloudSyncError: LocalizedError {
         }
     }
 }
+#endif

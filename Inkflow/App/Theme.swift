@@ -20,13 +20,26 @@ extension Color {
     }
 }
 
-struct InkflowMark: View {
-    var size: CGFloat = 42
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: size * 0.3).fill(Palette.accent)
-            Image(systemName: "quote.opening").font(.system(size: size * 0.55, weight: .bold)).foregroundStyle(Palette.canvas)
-        }.frame(width: size, height: size).accessibilityHidden(true)
+/// A rounded background alone does not define UIKit's context-menu lift mask.
+/// Keep the rendered surface, hit region, and lifted preview on the same path.
+private struct RoundedMenuCard: ViewModifier {
+    let cornerRadius: CGFloat
+    let border: Color
+
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        content
+            .background(Palette.card, in: shape)
+            .overlay(shape.strokeBorder(border, lineWidth: 1))
+            .clipShape(shape)
+            .contentShape(.interaction, shape)
+            .contentShape(.contextMenuPreview, shape)
+    }
+}
+
+extension View {
+    func roundedMenuCard(cornerRadius: CGFloat, border: Color = .clear) -> some View {
+        modifier(RoundedMenuCard(cornerRadius: cornerRadius, border: border))
     }
 }
 

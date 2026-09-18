@@ -10,6 +10,7 @@
 
 - 剪贴板历史、全文搜索、文字／链接筛选；手动收集时按内容去重。
 - 独立置顶与收藏；复制、编辑、分享、删除确认、恢复上一版原文。
+- 主屏幕小组件：小／中／大尺寸展示置顶与收藏摘要，点击进入片段；提供收集、历史、收藏入口，并支持隐藏桌面文字。
 - 系统分享扩展，从其他 App 分享文字或链接到「全岛铁盒」。
 - 可选前台自动收集，默认关闭；不声称能后台记录所有复制操作。
 - 文本动作：清理空白、去空行、行去重、排序、大小写、引用、待办、URL 编解码、字面查找替换。
@@ -20,9 +21,11 @@
 
 ## 运行
 
+**没有付费开发者会员、只想装到自己的手机：选择 `InkflowLocal` scheme，按 [免费自用安装说明](docs/LOCAL_INSTALL.md) 操作。** 本地版不会初始化 CloudKit，不包含分享扩展；免费签名需要每 7 天续签。下面的 `Inkflow` 是保留云同步的完整版。
+
 1. 打开 `Inkflow.xcodeproj`，选择 `Inkflow` scheme。
 2. 选择已安装运行时的 iPhone / iPad 模拟器，按 ⌘R，即可查看本地功能。
-3. 安装真机时，在两个 target 的 **Signing & Capabilities** 选择你的开发者 Team，并配置应用标识与 App Group。
+3. 安装真机时，为 App 和其扩展 targets 的 **Signing & Capabilities** 选择同一个开发者 Team，并配置应用标识与 App Group。完整版为 Inkflow / InkflowShare / InkflowWidget，本地版为 InkflowLocal / InkflowLocalWidget。
 4. 启用真正的 iCloud 同步前，按照 **[iCloud 配置说明](docs/ICLOUD.md)** 注册容器和能力；需要有效的 Apple Developer Program 会员资格。
 
 显示名称已经从「墨流」改为「全岛铁盒」。内部工程名、Bundle ID、App Group 与本机资料库路径保留兼容，不因改名丢失旧数据。
@@ -43,6 +46,7 @@
 - 开启 iCloud 后，收集的文字和相关标记会传输到 Apple CloudKit；没有开发者自建服务端、广告或分析 SDK。
 - JSON 导出是明文文件，请妥善保管。导出不包含 iCloud 账号绑定、设备 ID 或同步游标；导入不会覆盖当前账号绑定。
 - 分享扩展写入 App Group 的独立收件文件，主应用确认落盘后才清理收件箱。
+- 小组件只读取本机 App Group 的有限摘要：最多六条置顶／收藏，每条最多 180 字符；不读取完整资料库、普通历史或剪贴板。可在设置关闭内容展示，系统刷新可能延迟。
 - 单条文本最多 5 MB，备份导入最多 50 MB；无自动过期。超大历史库仍受 JSON 全量本地读写性能限制，云端传输则按记录增量执行。
 - iOS 不允许第三方 App 在后台持续收集其他 App 的所有复制，也不能恢复安装前的系统剪贴板历史。只保存实际收集到的纯文本／链接。
 
@@ -58,9 +62,20 @@ xcodebuild -project Inkflow.xcodeproj -scheme Inkflow \
 
 最低 iOS / iPadOS 17。当前本地验证环境为 Xcode 26.1.1、iOS SDK / 模拟器 26.1；尚未完成 Xcode 27 / iOS 27 的编译和真机验证。具体证据及未验证项见 [验证记录](docs/VALIDATION.md)。
 
-工程可直接打开；增加源文件后可运行 `node scripts/generate-project.mjs` 重新生成，无需 XcodeGen、CocoaPods 或 npm 安装。生成器会覆盖工程设置，个人 Team / Bundle ID 等修改应同步到脚本，或不要重新生成工程。
+工程可直接打开；增加源文件后可运行 `node scripts/generate-project.mjs` 重新生成，无需 XcodeGen、CocoaPods 或 npm 安装。个人 Team 放在 Git 忽略的 `Config/Signing.local.xcconfig` 中，可复制同目录的 `Signing.local.example.xcconfig` 并填写自己的 Team ID；App 和对应小组件自动使用同一个 Team。公开工程只引用变量，不包含任何人的 Team ID；重新生成不会改动本机签名配置，但会覆盖工程里的其他手工构建设置。切勿提交证书或用户数据。
 
-`--demo` 启动参数使用独立临时示例资料库，并禁止 iCloud 上传。图标由 `scripts/make-icon.swift` 绘制。公开仓库只包含源码、测试和示例截图，不包含用户资料库或签名材料。
+`--demo` 启动参数使用独立临时示例资料库，并禁止 iCloud 上传。桌面、设置页、侧栏和小组件统一使用设置页原有的圆润引号造型，图片字节一致；品牌颜色不随 App 深浅色主题反转。iOS 主屏幕的圆角、着色等仍由系统控制。
+
+更新图标时运行下列命令，避免出现两套图形；`check-brand.mjs` 同时检查四个 App／Widget target 都包含共享图标：
+
+```sh
+swift scripts/make-icon.swift \
+  Inkflow/Assets.xcassets/AppIcon.appiconset/AppIcon.png \
+  BrandAssets.xcassets/BrandMark.imageset/BrandMark.png
+node scripts/check-brand.mjs
+```
+
+公开仓库只包含源码、测试和示例截图，不包含用户资料库或签名材料。
 
 ## 目录
 
@@ -68,6 +83,7 @@ xcodebuild -project Inkflow.xcodeproj -scheme Inkflow \
 Inkflow/App/          原生界面、ClipStore、CloudKit 同步控制器
 Inkflow/Core/         模型、动作、持久化、备份、可测试的同步合并逻辑
 ShareExtension/       系统分享入口
+WidgetExtension/      主屏幕小组件（完整版与本地版独立签名）
 Tests/                核心与多设备合并回归测试
 scripts/              工程、图标与验证脚本
 docs/                 配置、验证与示例截图
