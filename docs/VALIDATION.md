@@ -1,5 +1,29 @@
 # 验证记录
 
+## 1.2.4：短文本卡片自适应高度（2026-09-24）
+
+- 移除片段正文 106 pt 的固定最小高度，按实际排版高度展示，保留最多五行预览、原有圆角、留白和底部收藏／复制按钮。历史、置顶与收藏共用此布局。
+- 用户已在 iPhone 15 Pro 确认短文本卡片效果；正式版本统一为 1.2.4（build 7），工程生成脚本与全部 targets 的版本号同步更新。
+- 核心测试 31 项通过，品牌一致性检查通过，本地版真机签名构建及完整版 iOS 无签名构建通过。
+- 1.2.4 已覆盖安装到 iPhone 13 Pro Max 与 iPhone 15 Pro，两个设备均确认版本为 1.2.4（build 7）且启动命令成功；未卸载应用或主动清空本地数据。
+
+## Mac mini 真机续签（2026-09-24）
+
+- 用户完成备份并在 Mac mini 的 Xcode 登录原 Apple 账号后，`InkflowLocal` 与 `InkflowLocalWidget` 自动签名构建通过。
+- 同一 Bundle ID 的 1.2.3（build 6）已覆盖安装到 iPhone 13 Pro Max，设备启动命令成功；未卸载应用或主动清空资料库，资料内容未逐条核验。
+- 新描述文件到期时间（北京时间）：主应用 2026-10-01 09:23:01，小组件 2026-10-01 09:23:03。
+
+## Mac mini 迁移验证（2026-09-24）
+
+- 环境：Apple Silicon arm64、macOS 27.0（26A428）、Xcode 27.0（27A266a）、Swift 6.4、iOS SDK 27.0、Node.js 26.10.0；Xcode 命令行工具路径正确。
+- `swift test`：31 项通过；使用独立构建目录执行 `swift test --scratch-path artifacts/migration-check/swift-local -Xswiftc -DLOCAL_ONLY`：31 项通过。
+- `node scripts/check-brand.mjs`：共享品牌图片及四个 App / Widget target 检查通过。
+- 在全新 DerivedData 目录中，`Inkflow` 与 `InkflowLocal` 的 iOS 设备构建、`Inkflow` 的 Mac Catalyst 构建均通过，全部使用 `CODE_SIGNING_ALLOWED=NO`。这验证了当前源码在 Xcode 27 / iOS 27 SDK 下的编译，不代表真机运行验收。
+- 工程、配置及脚本未发现写死的旧机器 `/Users/` 或 `/Volumes/` 路径；本机签名配置文件存在，但钥匙串报告 0 个有效代码签名身份。
+- 未安装任何 iOS 模拟器运行时，因此本轮未执行模拟器启动或界面操作；未执行真机安装、iCloud 双设备同步及签名分发验证。
+- 完整版设备与 Catalyst 构建出现 App Intents 元数据提取跳过警告（没有依赖 AppIntents.framework），不影响构建成功。
+- 本轮日志及新构建产物位于 Git 忽略的 `artifacts/migration-check/`；保留原机器复制过来的构建目录，未清理用户数据或签名配置。
+
 ## 1.2.3：长按预览圆角（2026-09-18）
 
 - 剪贴板卡片和文本动作卡片使用共用 `RoundedMenuCard`：背景、内描边、裁剪、交互区域与 `.contextMenuPreview` 使用同一个连续圆角形状；不再仅绘制圆角背景而保留矩形抬起预览。

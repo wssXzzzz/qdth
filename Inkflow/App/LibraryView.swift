@@ -159,7 +159,9 @@ struct ClipCard: View {
                         if clip.isPinned { Image(systemName: "pin.fill").font(.system(size: 11)).rotationEffect(.degrees(30)).foregroundStyle(Palette.accent) }
                     }
                     Text(clip.text).font(.system(size: 15)).foregroundStyle(Palette.ink).lineSpacing(7)
-                        .lineLimit(5).frame(maxWidth: .infinity, minHeight: 106, alignment: .topLeading)
+                        .lineLimit(5)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
                 }.padding(20).contentShape(.interaction, Rectangle())
             }.buttonStyle(.plain)
             HStack(spacing: 4) {

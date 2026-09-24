@@ -2,6 +2,8 @@
 
 给零散的文字，一个安静的家。
 
+当前版本：**1.2.4（build 7）**。短文本卡片高度随内容自适应，详见 [版本更新记录](CHANGELOG.md)。
+
 受 Taio 使用体验启发的独立原生 iPhone / iPad 剪贴板应用，支持 Mac Catalyst。聚焦历史浏览、置顶、收藏、文本处理及可选的 iCloud 同步。SwiftUI / UIKit / CloudKit，无第三方运行时依赖。
 
 [设置页截图](docs/screenshots/icloud-settings.png) · [iCloud 状态示例](docs/screenshots/icloud-no-account.png)
@@ -60,7 +62,7 @@ xcodebuild -project Inkflow.xcodeproj -scheme Inkflow \
   -derivedDataPath build-device CODE_SIGNING_ALLOWED=NO build
 ```
 
-最低 iOS / iPadOS 17。当前本地验证环境为 Xcode 26.1.1、iOS SDK / 模拟器 26.1；尚未完成 Xcode 27 / iOS 27 的编译和真机验证。具体证据及未验证项见 [验证记录](docs/VALIDATION.md)。
+最低 iOS / iPadOS 17。已在 Mac mini 的 Xcode 27.0 / iOS SDK 27.0 下通过核心测试、完整版与本地版 iOS 无签名构建及 Mac Catalyst 无签名构建；iOS 27 模拟器与真机运行尚未验证。此前界面验证使用 iOS 26.1 模拟器。具体证据及未验证项见 [验证记录](docs/VALIDATION.md)。
 
 工程可直接打开；增加源文件后可运行 `node scripts/generate-project.mjs` 重新生成，无需 XcodeGen、CocoaPods 或 npm 安装。个人 Team 放在 Git 忽略的 `Config/Signing.local.xcconfig` 中，可复制同目录的 `Signing.local.example.xcconfig` 并填写自己的 Team ID；App 和对应小组件自动使用同一个 Team。公开工程只引用变量，不包含任何人的 Team ID；重新生成不会改动本机签名配置，但会覆盖工程里的其他手工构建设置。切勿提交证书或用户数据。
 
