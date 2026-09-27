@@ -9,7 +9,6 @@ struct LibraryView: View {
     @State private var filter = "全部"
     @State private var showingCompose = false
     @State private var showingImport = false
-    @State private var pendingDelete: Clip?
     private let filters = ["全部", "文本", "链接"]
 
     private var clips: [Clip] {
@@ -76,9 +75,6 @@ struct LibraryView: View {
                 }
             } catch { store.error = error.localizedDescription }
         }
-        .confirmationDialog("删除这条片段？删除后无法恢复。", isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }), titleVisibility: .visible) {
-            Button("删除片段", role: .destructive) { if let clip = pendingDelete { store.delete(clip.id) }; pendingDelete = nil }
-        }
     }
 
     private var heading: some View {
@@ -131,7 +127,7 @@ struct LibraryView: View {
             }
             LazyVGrid(columns: [GridItem(.adaptive(minimum: sizeClass == .compact ? 290 : 260), spacing: 16)], spacing: 16) {
                 ForEach(items) { clip in
-                    ClipCard(clip: clip, delete: { pendingDelete = clip })
+                    ClipCard(clip: clip, delete: { store.delete(clip.id) })
                 }
             }
         }
@@ -147,6 +143,7 @@ struct ClipCard: View {
     @Environment(ClipStore.self) private var store
     let clip: Clip
     let delete: () -> Void
+    @State private var confirmingDelete = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -182,7 +179,12 @@ struct ClipCard: View {
                 Button(clip.isPinned ? "取消置顶" : "置顶", systemImage: "pin") { store.update(clip.id) { $0.isPinned.toggle() } }
                 Button(clip.isFavorite ? "取消收藏" : "收藏", systemImage: "star") { store.update(clip.id) { $0.isFavorite.toggle() } }
                 ShareLink(item: clip.text)
-                Button("删除", systemImage: "trash", role: .destructive, action: delete)
+                Button("删除", systemImage: "trash", role: .destructive) { confirmingDelete = true }
+            }
+            // Attach the native confirmation to its card, not the enclosing scroll view.
+            .confirmationDialog("删除这条片段？删除后无法恢复。", isPresented: $confirmingDelete, titleVisibility: .visible) {
+                Button("删除片段", role: .destructive, action: delete)
+                Button("取消", role: .cancel) {}
             }
     }
 }
